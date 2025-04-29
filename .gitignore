@@ -1,0 +1,13 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Images, figures, plots
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.svg
+*.pdf
+*.eps
