@@ -120,15 +120,15 @@ class WSDataset(Dataset):
                     [-math.pi, math.pi],
                     noise_range=None
                 )
-                blurred_patch = cv2.filter2D(patch, -1, kernel)
+                lq_patch = cv2.filter2D(patch, -1, kernel)
 
                 # downsample
-                downsampled_patch = cv2.resize(
-                blurred_patch, (int(pw // downsample_scale), int(ph // downsample_scale)), interpolation=cv2.INTER_LINEAR
+                lq_patch = cv2.resize(
+                lq_patch, (int(pw // downsample_scale), int(ph // downsample_scale)), interpolation=cv2.INTER_LINEAR
                 )
 
                 # resize to original size
-                lq_patch = cv2.resize(downsampled_patch, (pw, ph), interpolation=cv2.INTER_LINEAR)
+                lq_patch = cv2.resize(lq_patch, (pw, ph), interpolation=cv2.INTER_LINEAR)
 
 
                 out_img[y0:y1, x0:x1] = lq_patch
