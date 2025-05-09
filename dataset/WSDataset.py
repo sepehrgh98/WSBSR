@@ -9,7 +9,7 @@ import os
 import torch
 
 
-from dataset.utils import random_mixed_kernels, center_crop_arr, random_crop_arr
+from WSBSR.dataset.utils import random_mixed_kernels, center_crop_arr, random_crop_arr
 
 
 class WSDataset(Dataset):
@@ -24,7 +24,8 @@ class WSDataset(Dataset):
         blur_sigma: list,
         downsample_range: list,
         valid_extensions: list = [".png", ".jpg", ".jpeg"],
-        n_regions: int = 4 # will seperate image to n*n regions
+        n_regions: int = 4, # will seperate image to n*n regions
+        sigma_step: float = 0.1 # sigma step in sigma pool
     ) -> "WSDataset":
         super(WSDataset, self).__init__()
 
@@ -41,6 +42,10 @@ class WSDataset(Dataset):
         self.downsample_range = downsample_range
         self.valid_extensions = valid_extensions
         self.n_regions = n_regions
+        self.sigma_step = sigma_step
+        
+        start_sigma, end_sigma = self.blur_sigma
+        self.sigma_pool = [round(s, 2) for s in np.arange(start_sigma, end_sigma + 1e-6, self.sigma_step)] 
 
         self._run()
 
@@ -50,13 +55,14 @@ class WSDataset(Dataset):
         # Load data
         self.image_list = self._load_image(self.dataset_dir)
 
+
         
 
     def _load_image(self, path) -> list:
         image_list = []
         
         for dataset_name in os.listdir(path):
-            dataset_path = os.path.join(self.dataset_dir, dataset_name)
+            dataset_path = os.path.join(path, dataset_name)
 
             if not os.path.isdir(dataset_path):
                 continue
@@ -90,10 +96,8 @@ class WSDataset(Dataset):
         torch.manual_seed(42)
 
         
-        start_sigma, end_sigma = self.blur_sigma
-        sigma_pool = [round(s, 2) for s in np.arange(start_sigma, end_sigma + 1e-6, 0.1)] 
         m = random.randint(1, 5) # number of image level labels
-        sigma_values = random.sample(sigma_pool, m)
+        sigma_values = random.sample(self.sigma_pool, m)
 
         downsample_scale = np.random.uniform(self.downsample_range[0], self.downsample_range[1])
 
@@ -133,8 +137,13 @@ class WSDataset(Dataset):
 
                 out_img[y0:y1, x0:x1] = lq_patch
 
+        # Create binary label vector
+        label_vector = np.zeros(len(self.sigma_pool), dtype=int)
+        for sigma in sigma_values:
+            index = self.sigma_pool.index(round(sigma, 2))
+            label_vector[index] = 1
 
-        return out_img, sigma_values, downsample_scale
+        return torch.from_numpy(out_img), torch.tensor(label_vector), torch.tensor(downsample_scale)
 
 
 
@@ -154,7 +163,7 @@ class WSDataset(Dataset):
 
     def __getitem__(self, index: int) ->  Dict[str, Union[np.ndarray, list , str]]:
         img_path = self.image_list[index]
-        print(f"[INFO] Loading image : {img_path}")
+        # print(f"[INFO] Loading image : {img_path}")
 
         # Open the image
         img = Image.open(img_path).convert("RGB")
@@ -168,3 +177,7 @@ class WSDataset(Dataset):
 
     def __len__(self) -> int:
         return len(self.image_list)
+
+
+    def get_pool(self):
+        return self.sigma_pool

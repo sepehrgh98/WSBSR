@@ -21,6 +21,9 @@ dataloader = DataLoader(dataset, batch_size=batch, shuffle=True)
 
 
 for img, label, propmt in dataloader:
+    print("img type:", type(img))
+    print("Labels type:", type(label))
+    print("propmt type:", type(propmt))
     print("Labels:", label)
     print(f"propmt :", {propmt})
     print(f"image shape :", {img.shape})
